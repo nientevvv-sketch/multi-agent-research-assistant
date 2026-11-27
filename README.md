@@ -83,9 +83,9 @@ multi-agent-research-assistant/
 |   |-- workflow.py
 |   |
 |   |-- tools/
-|       |-- search.py
-|       |-- arxiv.py
-|       |-- fetch.py
+|   |   |-- search.py
+|   |   |-- arxiv.py
+|   |   |-- fetch.py
 |
 |-- tests/
     |-- test_agents.py
@@ -153,7 +153,7 @@ OPENAI_MODEL=your_available_model
 
 Use a model available to your OpenAI API account.
 
-**Important:** Never commit your `.env` file or expose your API key.
+> **Important:** Never commit your `.env` file or expose your API key.
 
 ## Running the Application
 
@@ -183,7 +183,7 @@ python main.py
 
 Enter a research question when prompted. The generated report is saved in the `reports/` directory.
 
-**Note:** Both execution modes require a valid OpenAI API key and available API usage limits.
+> **Note:** Both execution modes require a valid OpenAI API key and available API usage limits.
 
 ## Testing
 
@@ -195,44 +195,33 @@ python -m pytest -v
 
 **Latest local test result: 74 passed.**
 
-Tests cover:
+The test suite covers:
 
-Agent behaviour and validation
+- Agent behaviour and input validation
+- Research tools and source collection
+- OpenAI API error handling
+- Workflow execution and conditional routing
+- Report generation
+- Main application behaviour
 
-Research tools and source collection
+Tests use mocks where appropriate, so they do not require live OpenAI API calls.
 
-OpenAI API error handling
+## Current Limitations
 
-Workflow execution and conditional routing
+- Research quality depends on source availability and language model output.
+- Fact-checking can identify unsupported claims, but it does not guarantee complete factual accuracy.
+- API rate limits and service availability may affect live research execution.
+- The workflow follows a predefined agent sequence rather than dynamically creating new agents.
 
-Report generation
+## Future Improvements
 
-Main application behaviour
+- Add source credibility scoring.
+- Improve research planning.
+- Evaluate research quality.
+- Improve workflow monitoring and tracing.
 
-Tests use mocks where appropriate and do not require live OpenAI API calls.
-
-Current Limitations
-
-Research quality depends on source availability and language model output.
-
-Fact-checking helps identify unsupported claims but does not guarantee complete factual accuracy.
-
-API rate limits and service availability may affect live research execution.
-
-The workflow follows a predefined agent sequence rather than dynamically creating new agents.
-
-Future Improvements
-
-Source credibility scoring
-
-More advanced research planning
-
-Research quality evaluation
-
-Improved workflow monitoring and tracing
-
-Author
+## Author
 
 Developed as a personal AI engineering portfolio project.
 
-GitHub: https://github.com/nientevvv-sketch
+[GitHub profile](https://github.com/nientevvv-sketch)
