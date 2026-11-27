@@ -21,20 +21,29 @@ def planner_node(state: AgentState) -> dict:
 
 
 
+
 def research_node(state: AgentState) -> dict:
+    """Collect research material using the planner's tasks."""
+
     query = state["query"]
+    plan = state["plan"]
 
-    research_result = researcher.run(query)
+    research_queries = [query] + plan["tasks"]
 
-    research_material = research_result["research_material"]
-    sources = research_result["sources"]
+    materials = []
+    all_sources = []
 
-    # Ограничиваем размер материалов.
-    research_material = research_material[:5000]
+    for research_query in research_queries:
+        result = researcher.run(research_query)
+
+        materials.append(result["research_material"])
+        all_sources.extend(result["sources"])
+
+    research_material = "\n\n".join(materials)
 
     return {
-        "research_material": research_material,
-        "sources": sources
+        "research_material": research_material[:12000],
+        "sources": all_sources
     }
 
 
