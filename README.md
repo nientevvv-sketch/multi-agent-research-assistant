@@ -45,6 +45,29 @@ Final Research Report
 ```
 
 The workflow is orchestrated using LangGraph.
+### Architecture Diagram
+
+```mermaid
+flowchart TD
+    A([User Query]) --> B[Planner Agent]
+    B --> C[Research Agent]
+    C --> D[Analysis Agent]
+    D --> E[Fact-Checker Agent]
+    E --> F[Report Writer Agent]
+    F --> G([Final Research Report])
+
+    C -.-> H[(Wikipedia API)]
+    C -.-> I[(arXiv API)]
+    C -.-> J[URL Fetching Tool]
+
+    K[(AgentState)] --- B
+    K --- C
+    K --- D
+    K --- E
+    K --- F
+```
+
+The workflow uses a shared `AgentState` to pass information between agents. Research tools are used by the Research Agent to retrieve external information.
 
 ## Key Features
 
