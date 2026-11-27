@@ -95,8 +95,12 @@ The workflow uses a shared `AgentState` to pass information between agents. Rese
 ## Project Structure
 
 ```text
+## Project Structure
+
+```text
 multi-agent-research-assistant/
 |
+|-- app.py
 |-- main.py
 |-- requirements.txt
 |-- .env.example
@@ -104,6 +108,7 @@ multi-agent-research-assistant/
 |-- README.md
 |
 |-- src/
+|   |-- __init__.py
 |   |-- agents.py
 |   |-- planner.py
 |   |-- analysis_agent.py
@@ -128,6 +133,8 @@ multi-agent-research-assistant/
     |-- test_fact_checker.py
     |-- test_fetch.py
     |-- test_llm_client.py
+    |-- test_main.py
+    |-- test_nodes.py
     |-- test_planner.py
     |-- test_report_writer.py
     |-- test_search.py
