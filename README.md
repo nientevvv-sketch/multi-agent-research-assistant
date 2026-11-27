@@ -196,5 +196,43 @@ python -m pytest -v
 **Latest local test result: 74 passed.**
 
 Tests cover:
-- Agent behaviour and validation
-- Research tools and source collection
+
+Agent behaviour and validation
+
+Research tools and source collection
+
+OpenAI API error handling
+
+Workflow execution and conditional routing
+
+Report generation
+
+Main application behaviour
+
+Tests use mocks where appropriate and do not require live OpenAI API calls.
+
+Current Limitations
+
+Research quality depends on source availability and language model output.
+
+Fact-checking helps identify unsupported claims but does not guarantee complete factual accuracy.
+
+API rate limits and service availability may affect live research execution.
+
+The workflow follows a predefined agent sequence rather than dynamically creating new agents.
+
+Future Improvements
+
+Source credibility scoring
+
+More advanced research planning
+
+Research quality evaluation
+
+Improved workflow monitoring and tracing
+
+Author
+
+Developed as a personal AI engineering portfolio project.
+
+GitHub: https://github.com/nientevvv-sketch
