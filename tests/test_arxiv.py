@@ -4,6 +4,14 @@ import pytest
 from src.tools.arxiv import search_arxiv
 
 
+@pytest.fixture(autouse=True)
+def reset_arxiv_request_timer(monkeypatch):
+    monkeypatch.setattr(
+        "src.tools.arxiv._last_request_time",
+        0.0
+    )
+
+
 def test_search_arxiv_returns_parsed_results(monkeypatch):
     xml_response = b"""<?xml version="1.0" encoding="UTF-8"?>
     <feed xmlns="http://www.w3.org/2005/Atom">
@@ -25,12 +33,9 @@ def test_search_arxiv_returns_parsed_results(monkeypatch):
         def raise_for_status(self):
             pass
 
-    def mock_get(*args, **kwargs):
-        return MockResponse()
-
     monkeypatch.setattr(
         "src.tools.arxiv.requests.get",
-        mock_get
+        lambda *args, **kwargs: MockResponse()
     )
 
     results = search_arxiv("financial risk")
@@ -50,10 +55,16 @@ def test_search_arxiv_rejects_empty_query():
     with pytest.raises(ValueError):
         search_arxiv("")
 
+    with pytest.raises(ValueError):
+        search_arxiv("   ")
+
 
 def test_search_arxiv_rejects_invalid_max_results():
     with pytest.raises(ValueError):
         search_arxiv("machine learning", max_results=0)
+
+    with pytest.raises(ValueError):
+        search_arxiv("machine learning", max_results=-1)
 
 
 def test_search_arxiv_rejects_boolean_max_results():
@@ -72,5 +83,21 @@ def test_search_arxiv_handles_request_error(monkeypatch):
         mock_get
     )
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(RuntimeError, match="arXiv"):
+        search_arxiv("financial risk")
+
+
+def test_search_arxiv_handles_invalid_xml(monkeypatch):
+    class MockResponse:
+        content = b"<feed><entry><title>Invalid XML"
+
+        def raise_for_status(self):
+            pass
+
+    monkeypatch.setattr(
+        "src.tools.arxiv.requests.get",
+        lambda *args, **kwargs: MockResponse()
+    )
+
+    with pytest.raises(RuntimeError, match="arXiv"):
         search_arxiv("financial risk")

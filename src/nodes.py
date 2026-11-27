@@ -14,16 +14,18 @@ fact_checker = FactCheckerAgent()
 report_writer = ReportWriterAgent()
 
 
+MAX_TOTAL_SOURCES = 6
+
+
 def planner_node(state: AgentState) -> dict:
-    """Создаёт план исследования."""
+    """Create a research plan."""
+
     plan = planner.run(state["query"])
     return {"plan": plan}
 
 
-
-
 def research_node(state: AgentState) -> dict:
-    """Collect research material using the planner's tasks."""
+    """Collect summaries from all queries and deduplicate sources."""
 
     query = state["query"]
     plan = state["plan"]
@@ -31,37 +33,59 @@ def research_node(state: AgentState) -> dict:
     research_queries = [query] + plan["tasks"]
 
     materials = []
-    all_sources = []
+    unique_sources = []
+    seen_urls = set()
 
     for research_query in research_queries:
         result = researcher.run(research_query)
 
         materials.append(result["research_material"])
-        all_sources.extend(result["sources"])
 
-    research_material = "\n\n".join(materials)
+        for source in result["sources"]:
+            if len(unique_sources) >= MAX_TOTAL_SOURCES:
+                break
+
+            url = source.get("url", "").strip()
+
+            if not url or url in seen_urls:
+                continue
+
+            seen_urls.add(url)
+            unique_sources.append(source)
 
     return {
-        "research_material": research_material[:12000],
-        "sources": all_sources
+        "research_material": "\n\n".join(materials)[:12000],
+        "sources": unique_sources
+    }
+    for research_query in research_queries:
+        result = researcher.run(research_query)
+
+        materials.append(result["research_material"])
+
+        for source in result["sources"]:
+            url = source.get("url", "").strip()
+
+            if not url or url in seen_urls:
+                continue
+
+            seen_urls.add(url)
+            unique_sources.append(source)
+
+            if len(unique_sources) >= MAX_TOTAL_SOURCES:
+                break
+
+        if len(unique_sources) >= MAX_TOTAL_SOURCES:
+            break
+
+    return {
+        "research_material": "\n\n".join(materials)[:12000],
+        "sources": unique_sources
     }
 
 
-    research_queries = [query] + plan["tasks"]
-    materials = []
-
-    for research_query in research_queries:
-        result = researcher.run(research_query)
-        materials.append(result)
-
-    research_material = "\n\n".join(materials)
-
-    # Ограничиваем общий размер исследовательских материалов.
-    research_material = research_material[:12000]
-
-    return {"research_material": research_material}
-
 def analysis_node(state: AgentState) -> dict:
+    """Analyse collected research material."""
+
     analysis = analyst.run(
         query=state["query"],
         research_material=state["research_material"],
@@ -72,6 +96,8 @@ def analysis_node(state: AgentState) -> dict:
 
 
 def fact_checker_node(state: AgentState) -> dict:
+    """Verify analytical claims against collected sources."""
+
     fact_check = fact_checker.run(
         claims=state["analysis"],
         research_material=state["research_material"],
@@ -82,6 +108,8 @@ def fact_checker_node(state: AgentState) -> dict:
 
 
 def report_writer_node(state: AgentState) -> dict:
+    """Generate the final research report."""
+
     final_report = report_writer.run(
         query=state["query"],
         research_material=state["research_material"],

@@ -7,7 +7,28 @@ import pytest
 with patch.dict(os.environ, {"OPENAI_API_KEY": "test-api-key"}):
     from src.report_writer import ReportWriterAgent
 
+VALID_REPORT = """
+# Research title
+AI in Finance
 
+## Research objective
+Study AI applications in finance.
+
+## Key findings
+AI can support financial analysis.
+
+## Analysis
+AI improves automation.
+
+## Fact-checking results
+The claim is partially confirmed.
+
+## Sources
+No sources provided.
+
+## Research limitations
+The findings require further validation.
+"""
 @pytest.fixture
 def writer():
     return ReportWriterAgent()
@@ -16,7 +37,7 @@ def writer():
 def test_report_writer_returns_response(writer):
     with patch(
         "src.report_writer.generate_response",
-        return_value="# Research Report"
+         return_value=VALID_REPORT
     ):
         result = writer.run(
             query="AI in finance",
@@ -25,7 +46,7 @@ def test_report_writer_returns_response(writer):
             fact_check="The claim is partially confirmed."
         )
 
-    assert result == "# Research Report"
+    assert result == VALID_REPORT
 
 
 def test_report_writer_rejects_empty_query(writer):
@@ -51,7 +72,7 @@ def test_report_writer_rejects_empty_fact_check(writer):
 def test_report_writer_includes_all_inputs(writer):
     with patch(
         "src.report_writer.generate_response",
-        return_value="Final report"
+        return_value=VALID_REPORT
     ) as mock_generate:
         writer.run(
             "AI in finance",
@@ -71,7 +92,8 @@ def test_report_writer_includes_all_inputs(writer):
 def test_report_writer_includes_system_prompt(writer):
     with patch(
         "src.report_writer.generate_response",
-        return_value="Final report"
+        return_value=VALID_REPORT
+
     ) as mock_generate:
         writer.run(
             "AI in finance",
@@ -84,3 +106,16 @@ def test_report_writer_includes_system_prompt(writer):
 
     assert "Report Writer Agent" in prompt
     assert "исследовательские отчёты" in prompt
+
+def test_report_writer_rejects_incomplete_report(writer):
+    with patch(
+        "src.report_writer.generate_response",
+        return_value="# Research Report\n\n## Key findings\nSome findings."
+    ):
+        with pytest.raises(ValueError, match="structure"):
+            writer.run(
+                query="AI in finance",
+                research_material="Research sources",
+                analysis="Analytical conclusions",
+                fact_check="Fact-check results"
+            )

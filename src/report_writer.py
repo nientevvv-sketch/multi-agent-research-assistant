@@ -1,23 +1,25 @@
+
 from src.llm_client import generate_response
 
 
 class ReportWriterAgent:
     """Creates a structured research report."""
 
+    MAX_SOURCES = 6
+    MAX_QUERY_LENGTH = 500
+    MAX_SUMMARY_LENGTH = 2000
+    MAX_ANALYSIS_LENGTH = 3000
+    MAX_FACT_CHECK_LENGTH = 2000
+
     def __init__(self):
         self.system_prompt = (
-            "You are a Report Writer Agent in a multi-agent research system.\n"
-            "Create a clear, structured research report.\n"
-            "Use the following structure:\n"
-            "1. Research title\n"
-            "2. Research objective\n"
-            "3. Key findings\n"
-            "4. Analysis\n"
-            "5. Fact-checking results\n"
-            "6. Sources with titles and URLs\n"
-            "7. Research limitations\n"
-            "Do not invent facts, figures, or sources.\n"
-            "Use only the provided source registry.\n"
+            "You are a Report Writer Agent. "
+            "Create a clear, concise, evidence-based report with these sections: "
+            "Research title, Research objective, Key findings, Analysis, "
+            "Fact-checking results, Sources, Research limitations. "
+            "Use only the provided source registry. "
+            "Preserve source URLs exactly. "
+            "Never invent facts, figures, or sources. "
             "This agent creates исследовательские отчёты."
         )
 
@@ -29,6 +31,7 @@ class ReportWriterAgent:
         fact_check: str,
         sources: list[dict] | None = None
     ) -> str:
+        """Generate and validate the final research report."""
 
         inputs = {
             "query": query,
@@ -56,32 +59,63 @@ class ReportWriterAgent:
 
         formatted_sources = []
 
-        for index, source in enumerate(sources[:3], start=1):
+        for index, source in enumerate(
+            sources[:self.MAX_SOURCES],
+            start=1
+        ):
             if not isinstance(source, dict):
                 continue
 
             formatted_sources.append(
-                f"Source {index}:\n"
-                f"Title: {source.get('title', 'Unknown')}\n"
-                f"Type: {source.get('source_type', 'Unknown')}\n"
+                f"Source {index}: "
+                f"{source.get('title', 'Unknown')}; "
+                f"Type: {source.get('source_type', 'Unknown')}; "
                 f"URL: {source.get('url', 'Unknown')}"
             )
 
         sources_text = (
-            "\n\n".join(formatted_sources)
+            "\n".join(formatted_sources)
             if formatted_sources
             else "No sources provided."
         )
 
-        full_prompt = (
+        prompt = (
             f"{self.system_prompt}\n\n"
-            f"Research query:\n{query[:500]}\n\n"
-            f"Research summary:\n{research_material[:2000]}\n\n"
-            f"Analysis:\n{analysis[:3000]}\n\n"
-            f"Fact-checking:\n{fact_check[:2000]}\n\n"
+            f"Research query:\n{query[:self.MAX_QUERY_LENGTH]}\n\n"
+            f"Research summary:\n"
+            f"{research_material[:self.MAX_SUMMARY_LENGTH]}\n\n"
+            f"Analysis:\n{analysis[:self.MAX_ANALYSIS_LENGTH]}\n\n"
+            f"Fact-checking:\n"
+            f"{fact_check[:self.MAX_FACT_CHECK_LENGTH]}\n\n"
             f"Source registry:\n{sources_text}\n\n"
-            "Write the final report using the required structure. "
-            "Preserve source URLs exactly as provided."
+            "Write the final report using all required sections."
         )
 
-        return generate_response(full_prompt)
+        report = generate_response(prompt)
+
+        if not isinstance(report, str) or not report.strip():
+            raise ValueError("Generated report is empty.")
+
+        required_sections = [
+            "Research title",
+            "Research objective",
+            "Key findings",
+            "Analysis",
+            "Fact-checking results",
+            "Sources",
+            "Research limitations"
+        ]
+
+        missing_sections = [
+            section
+            for section in required_sections
+            if section.lower() not in report.lower()
+        ]
+
+        if missing_sections:
+            raise ValueError(
+                f"Report structure is incomplete. "
+                f"Missing sections: {missing_sections}"
+            )
+
+        return report

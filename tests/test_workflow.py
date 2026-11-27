@@ -2,8 +2,6 @@
 import os
 from unittest.mock import patch
 
-import pytest
-
 with patch.dict(os.environ, {"OPENAI_API_KEY": "test-api-key"}):
     from src import workflow
 
@@ -19,23 +17,28 @@ def test_workflow_executes_all_nodes(monkeypatch):
 
     def fake_planner(state):
         execution_order.append("planner")
-        return {"plan": {"goal": "Test", "tasks": ["Task 1", "Task 2", "Task 3"]}}
+        return {
+            "plan": {
+                "goal": "Test",
+                "tasks": ["Task 1", "Task 2", "Task 3"]
+            }
+        }
 
     def fake_researcher(state):
         execution_order.append("researcher")
         return {
-    	   "research_material": "Research results",
-           "sources": [
-        	{
-            	      "title": "Test source",
-                      "url": "https://example.com",
-                      "source_type": "Wikipedia article",
-                      "authors": [],
-                      "published": "",
-                      "content": "Test content"
-        	}
-    	]
-}
+            "research_material": "Research results",
+            "sources": [
+                {
+                    "title": "Test source",
+                    "url": "https://example.com",
+                    "source_type": "Wikipedia article",
+                    "authors": [],
+                    "published": "",
+                    "content": "Test content"
+                }
+            ]
+        }
 
     def fake_analyst(state):
         execution_order.append("analyst")
@@ -56,7 +59,6 @@ def test_workflow_executes_all_nodes(monkeypatch):
     monkeypatch.setattr(workflow, "report_writer_node", fake_report_writer)
 
     graph = workflow.build_workflow()
-
     result = graph.invoke({"query": "Test research topic"})
 
     assert execution_order == [
@@ -79,18 +81,44 @@ def test_workflow_preserves_user_query(monkeypatch):
 
     def fake_researcher(state):
         return {
-    	    "research_material": "Sources",
-    	    "sources": []
-	}
+            "research_material": "Sources",
+            "sources": []
+        }
+
+    monkeypatch.setattr(workflow, "planner_node", fake_planner)
+    monkeypatch.setattr(workflow, "research_node", fake_researcher)
+
+    graph = workflow.build_workflow()
+    result = graph.invoke({"query": "My research question"})
+
+    assert result["query"] == "My research question"
+
+
+def test_workflow_stops_when_no_sources(monkeypatch):
+    execution_order = []
+
+    def fake_planner(state):
+        execution_order.append("planner")
+        return {"plan": {"goal": "Test", "tasks": ["A", "B", "C"]}}
+
+    def fake_researcher(state):
+        execution_order.append("researcher")
+        return {
+            "research_material": "No sources found",
+            "sources": []
+        }
 
     def fake_analyst(state):
-        return {"analysis": "Analysis"}
+        execution_order.append("analyst")
+        return {"analysis": "Should not execute"}
 
     def fake_fact_checker(state):
-        return {"fact_check": "Verified"}
+        execution_order.append("fact_checker")
+        return {"fact_check": "Should not execute"}
 
     def fake_report_writer(state):
-        return {"final_report": "Report"}
+        execution_order.append("report_writer")
+        return {"final_report": "Should not execute"}
 
     monkeypatch.setattr(workflow, "planner_node", fake_planner)
     monkeypatch.setattr(workflow, "research_node", fake_researcher)
@@ -99,7 +127,8 @@ def test_workflow_preserves_user_query(monkeypatch):
     monkeypatch.setattr(workflow, "report_writer_node", fake_report_writer)
 
     graph = workflow.build_workflow()
-    result = graph.invoke({"query": "My research question"})
+    result = graph.invoke({"query": "Test research topic"})
 
-    assert result["query"] == "My research question"
-
+    assert execution_order == ["planner", "researcher"]
+    assert result["sources"] == []
+    assert "final_report" not in result

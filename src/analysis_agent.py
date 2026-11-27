@@ -3,19 +3,16 @@ from src.llm_client import generate_response
 
 
 class AnalysisAgent:
+    """Analyses research materials and produces evidence-based conclusions."""
+
     def __init__(self):
         self.system_prompt = (
-            "Ты — Analysis Agent в системе исследовательских AI-агентов.\n"
-            "Твоя задача — анализировать предоставленные исследовательские материалы.\n"
-            "В каждом ответе обязательно:\n"
-            "1. Выделяй основные факты и закономерности.\n"
-            "2. Сравнивай информацию из разных источников.\n"
-            "3. Обращай внимание на противоречия и несоответствия.\n"
-            "4. Отделяй факты от предположений.\n"
-            "5. Формулируй аргументированные выводы.\n"
-            "6. Указывай ограничения анализа и недостающие данные.\n"
-            "7. При использовании информации указывай номер источника.\n"
-            "Не придумывай факты, которых нет в материалах."
+            "You are an analysis agent. "
+            "Identify key facts and patterns, compare sources, "
+            "highlight contradictions, and distinguish evidence from assumptions. "
+            "Draw reasoned conclusions and state limitations or missing data. "
+            "Reference source numbers when available. "
+            "Never invent facts or attribute unsupported claims to sources."
         )
 
     def run(
@@ -24,21 +21,22 @@ class AnalysisAgent:
         research_material: str,
         sources: list[dict] | None = None
     ) -> str:
+        """Analyse research materials and return a structured analysis."""
 
         if not isinstance(query, str) or not query.strip():
-            raise ValueError("Исследовательский запрос не может быть пустым.")
+            raise ValueError("Research query cannot be empty.")
 
         if (
             not isinstance(research_material, str)
             or not research_material.strip()
         ):
-            raise ValueError("Исследовательские материалы не могут быть пустыми.")
+            raise ValueError("Research materials cannot be empty.")
 
         if sources is None:
             sources = []
 
         if not isinstance(sources, list):
-            raise ValueError("Список источников должен быть списком.")
+            raise ValueError("Sources must be a list.")
 
         formatted_sources = []
 
@@ -46,28 +44,31 @@ class AnalysisAgent:
             if not isinstance(source, dict):
                 continue
 
+            authors = source.get("authors", [])
+            if not isinstance(authors, list):
+                authors = []
+
             formatted_sources.append(
-                f"Источник {index}:\n"
-                f"Название: {source.get('title', 'Не указано')}\n"
-                f"Тип: {source.get('source_type', 'Не указан')}\n"
-                f"URL: {source.get('url', 'Не указан')}\n"
-                f"Авторы: {', '.join(source.get('authors', [])) or 'Не указаны'}\n"
-                f"Дата публикации: {source.get('published', 'Не указана')}"
+                f"Source {index}: "
+                f"{source.get('title', 'Unknown')}; "
+                f"Type: {source.get('source_type', 'Unknown')}; "
+                f"URL: {source.get('url', 'Unknown')}; "
+                f"Authors: {', '.join(str(author) for author in authors) or 'Unknown'}; "
+                f"Published: {source.get('published', 'Unknown')}"
             )
 
         sources_text = (
-            "\n\n".join(formatted_sources)
+            "\n".join(formatted_sources)
             if formatted_sources
-            else "Структурированные источники не предоставлены."
+            else "No structured source metadata provided."
         )
 
-        full_prompt = (
+        prompt = (
             f"{self.system_prompt}\n\n"
-            f"Исследовательский запрос:\n{query.strip()}\n\n"
-            f"Материалы для анализа:\n{research_material.strip()}\n\n"
-            f"Реестр источников:\n{sources_text}\n\n"
-            "Подготовь структурированный аналитический ответ. "
-            "Не приписывай источникам информацию, которой они не содержат."
+            f"Research question: {query.strip()}\n\n"
+            f"Research materials:\n{research_material.strip()}\n\n"
+            f"Source registry:\n{sources_text}\n\n"
+            "Provide a concise, structured, evidence-based analysis."
         )
 
-        return generate_response(full_prompt)
+        return generate_response(prompt)

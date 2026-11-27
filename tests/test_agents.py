@@ -53,7 +53,7 @@ def test_research_agent_returns_response():
 
         mock_fetch.assert_called_once_with(
             "https://example.com/ai",
-            max_length=1200
+            max_length=800
         )
 
         mock_generate.assert_called_once()
@@ -104,21 +104,19 @@ def test_research_agent_handles_empty_search_results():
     ), patch(
         "src.agents.fetch_url"
     ) as mock_fetch, patch(
-        "src.agents.generate_response",
-        return_value="Response without sources"
+        "src.agents.generate_response"
     ) as mock_generate:
 
         agent = ResearchAgent()
         result = agent.run("Unknown topic")
 
-        assert result["research_material"] == "Response without sources"
+        assert result["research_material"] == (
+            "Не удалось получить материалы из веб-поиска."
+        )
         assert result["sources"] == []
 
         mock_fetch.assert_not_called()
-
-        full_prompt = mock_generate.call_args.args[0]
-
-        assert "Не удалось получить материалы" in full_prompt
+        mock_generate.assert_not_called()
 
 
 def test_research_agent_uses_search_snippet_if_fetch_fails():

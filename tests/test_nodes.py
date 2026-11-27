@@ -85,3 +85,77 @@ def test_research_node_combines_sources():
     assert len(result["sources"]) == 4
     assert result["sources"][0]["title"] == "Source 0"
     assert result["sources"][3]["title"] == "Source 3"
+
+
+def test_research_node_limits_sources_to_six():
+    state = {
+        "query": "AI research",
+        "plan": {
+            "goal": "Study AI",
+            "tasks": ["Task 1", "Task 2", "Task 3"]
+        }
+    }
+
+    mock_results = [
+        {
+            "research_material": f"Material {i}",
+            "sources": [
+                {
+                    "title": f"Source {i}-{j}",
+                    "url": f"https://example.com/{i}-{j}",
+                    "source_type": "Wikipedia article",
+                    "authors": [],
+                    "published": "",
+                    "content": "Content"
+                }
+                for j in range(3)
+            ]
+        }
+        for i in range(4)
+    ]
+
+    with patch(
+        "src.nodes.researcher.run",
+        side_effect=mock_results
+    ) as mock_run:
+        result = research_node(state)
+
+    assert mock_run.call_count == 4
+    assert len(result["sources"]) == 6
+    assert "Material 3" in result["research_material"]
+
+
+def test_research_node_removes_duplicate_urls():
+    state = {
+        "query": "AI research",
+        "plan": {
+            "goal": "Study AI",
+            "tasks": ["Task 1", "Task 2", "Task 3"]
+        }
+    }
+
+    mock_results = [
+        {
+            "research_material": f"Material {i}",
+            "sources": [
+                {
+                    "title": f"Source {i}",
+                    "url": "https://example.com/shared",
+                    "source_type": "Wikipedia article",
+                    "authors": [],
+                    "published": "",
+                    "content": "Content"
+                }
+            ]
+        }
+        for i in range(4)
+    ]
+
+    with patch(
+        "src.nodes.researcher.run",
+        side_effect=mock_results
+    ):
+        result = research_node(state)
+
+    assert len(result["sources"]) == 1
+    assert result["sources"][0]["url"] == "https://example.com/shared"

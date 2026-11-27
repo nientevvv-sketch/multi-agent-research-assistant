@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.tools.search import web_search
+from src.tools.search import web_search, combined_search
 
 
 @pytest.fixture
@@ -101,3 +101,52 @@ def test_web_search_network_error(mock_requests_get):
             web_search("python")
 
     assert mock_requests_get.call_count == 3
+
+def test_web_search_invalid_json(mock_requests_get):
+    mock_response = MagicMock()
+    mock_response.json.side_effect = ValueError("Invalid JSON")
+
+    mock_requests_get.return_value = mock_response
+
+    with patch("src.tools.search.time.sleep"):
+        with pytest.raises(RuntimeError):
+            web_search("python")
+
+    assert mock_requests_get.call_count == 3
+
+def test_combined_search_uses_arxiv_when_wikipedia_fails():
+    arxiv_results = [
+        {
+            "title": "AI Research",
+            "url": "https://arxiv.org/abs/1234.5678",
+            "body": "Research abstract",
+            "source_type": "arXiv research paper"
+        }
+    ]
+
+    with patch(
+        "src.tools.search.web_search",
+        side_effect=RuntimeError("Wikipedia unavailable")
+    ):
+        with patch(
+            "src.tools.search.search_arxiv",
+            return_value=arxiv_results
+        ):
+            result = combined_search("AI research")
+
+    assert result == arxiv_results
+
+def test_combined_search_fails_when_all_sources_fail():
+    with patch(
+        "src.tools.search.web_search",
+        side_effect=RuntimeError("Wikipedia unavailable")
+    ):
+        with patch(
+            "src.tools.search.search_arxiv",
+            side_effect=RuntimeError("arXiv unavailable")
+        ):
+            with pytest.raises(
+                RuntimeError,
+                match="Wikipedia.*arXiv"
+            ):
+                combined_search("AI research")
