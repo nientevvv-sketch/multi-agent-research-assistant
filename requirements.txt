@@ -1,0 +1,10 @@
+
+openai
+python-dotenv
+pydantic
+pytest
+ddgs
+requests
+beautifulsoup4
+langgraph
+grandalf
